@@ -67,6 +67,10 @@ wget  -r -nH --cut-dirs=4 --no-parent --reject="index.html*" http://bark.phon.io
 python train.py hparams/train_ecapa.yaml
 ```
 
+```
+python train_wav2vec.py hparams/train_wav2vec.yaml
+```
+
 Training is run for 40 epochs. One epoch takes one hour and 40 minutes on a NVidia A100 GPU.
 
 
@@ -74,15 +78,72 @@ Training is run for 40 epochs. One epoch takes one hour and 40 minutes on a NVid
 | Release | hyperparams file | Dev error rate | Model link | GPUs |
 |:-------------:|:---------------------------:| -----:| -----:| :-----------:|
 | 21-08-24 | train_ecapa.yaml | 6.7 |https://drive.google.com/drive/folders/151QTW9oHVElLIkuzXjkuHpOCLNZF0Ufd?usp=sharing | 1xA100 40GB |
+| 22-04-14 | train_wav2vec.yaml | 5.6 |https://huggingface.co/TalTechNLP/voxlingua107-xls-r-300m-wav2vec| 2xA100 40GB |
 
 
 
 # Inference
 The pre-trained model + easy inference is available on HuggingFace:
+- https://huggingface.co/TalTechNLP/voxlingua107-xls-r-300m-wav2vec
 - https://huggingface.co/speechbrain/lang-id-voxlingua107-ecapa
 
 You can run inference with only few lines of code:
 
+## TalTechNLP/voxlingua107-xls-r-300m-wav2vec:
+
+_This model uses custom inference classifier and hparams file included in HuggingFace._
+
+```python
+import torchaudio
+from speechbrain.pretrained.interfaces import foreign_class
+language_id = foreign_class(source="TalTechNLP/voxlingua107-xls-r-300m-wav2vec", pymodule_file="encoder_wav2vec_classifier.py", classname="EncoderWav2vecClassifier", hparams_file='inference_wav2vec.yaml', savedir="tmp")
+# Download Thai language sample from Omniglot and convert to suitable form
+wav_file = "https://omniglot.com/soundfiles/udhr/udhr_th.mp3"
+out_prob, score, index, text_lab = language_id.classify_file(wav_file)
+print("probability:", out_prob)
+print("label:", text_lab)
+print("score:", score)
+print("index:", index)
+    probability: tensor([[[-2.2849e+01, -2.4349e+01, -2.3686e+01, -2.3632e+01, -2.0218e+01,
+            -2.7241e+01, -2.6715e+01, -2.2301e+01, -2.6076e+01, -2.1716e+01,
+            -1.9923e+01, -2.7303e+01, -2.1211e+01, -2.2998e+01, -2.4436e+01,
+            -2.6437e+01, -2.2686e+01, -2.4244e+01, -2.0416e+01, -2.8329e+01,
+            -1.7788e+01, -2.4829e+01, -2.4186e+01, -2.7036e+01, -2.5993e+01,
+            -1.9677e+01, -2.2746e+01, -2.9192e+01, -2.4941e+01, -2.7135e+01,
+            -2.6653e+01, -2.2791e+01, -2.4599e+01, -2.1066e+01, -2.4855e+01,
+            -2.1874e+01, -2.2914e+01, -2.4174e+01, -2.0902e+01, -2.3197e+01,
+            -2.6108e+01, -2.3941e+01, -2.3103e+01, -2.2363e+01, -2.8969e+01,
+            -2.5302e+01, -2.4862e+01, -2.2392e+01, -2.4042e+01, -2.1221e+01,
+            -2.3656e+01, -2.1286e+01, -1.9209e+01, -2.3254e+01, -2.8291e+01,
+            -5.9105e+00, -2.4525e+01, -2.4937e+01, -2.8349e+01, -2.4420e+01,
+            -2.7439e+01, -2.6329e+01, -2.3317e+01, -2.3842e+01, -2.2114e+01,
+            -2.3637e+01, -1.7217e+01, -1.8342e+01, -2.4332e+01, -2.6090e+01,
+            -2.5452e+01, -2.3854e+01, -2.6082e+01, -2.4992e+01, -2.0618e+01,
+            -2.9351e+01, -2.4153e+01, -2.3156e+01, -2.6893e+01, -2.5314e+01,
+            -2.8374e+01, -2.4009e+01, -2.3604e+01, -2.4063e+01, -2.3538e+01,
+            -2.4953e+01, -2.5607e+01, -2.3960e+01, -2.6471e+01, -2.3348e+01,
+            -2.1681e+01, -2.7610e+01, -2.5023e+01, -2.3585e+01, -2.7146e-03,
+            -2.0338e+01, -1.8737e+01, -2.5158e+01, -2.7491e+01, -2.3623e+01,
+            -2.5718e+01, -2.3465e+01, -1.8305e+01, -2.1064e+01, -2.9880e+01,
+            -2.2809e+01, -1.9856e+01]]])
+    # The identified language ISO code is given in score[0][0]
+    label: [['th']]
+    score: tensor([[-0.0027]])
+    index: tensor([[94]])
+# The scores in the out_prob tensor can be interpreted as log-likelihoods that
+# the given utterance belongs to the given language (i.e., the larger the better)
+# The linear-scale likelihood can be retrieved using the following:
+print(score.exp())
+  tensor([0.9973])
+  
+# Alternatively, use the utterance embedding extractor:
+signal, fs = torchaudio.load(wav_file)
+embeddings =  language_id.encode_batch(signal)
+print(embeddings.shape)
+    torch.Size([2, 1, 2048])
+```
+
+## speechbrain/lang-id-voxlingua107-ecapa:
 ```python
 import torchaudio
 from speechbrain.pretrained import EncoderClassifier
