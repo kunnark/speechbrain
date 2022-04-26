@@ -2,9 +2,9 @@
 """Recipe for training language embeddings using the VoxLingua107 Dataset.
 This recipe is heavily inspired by this: https://github.com/nikvaessen/speechbrain/tree/sharded-voxceleb/my-recipes/SpeakerRec
 To run this recipe, use the following command:
-> python train_lang_embeddings_wds.py {hyperparameter_file}
+> python train_wav2vec.py {hyperparameter_file}
 Using your own hyperparameter file or one of the following:
-    hparams/train_epaca_tdnn_wds.yaml (for the ecapa+tdnn system)
+    hparams/train_wav2vec.yaml (for the wav2vec system)
 Author
     * Mirco Ravanelli 2020
     * Hwidong Na 2020
